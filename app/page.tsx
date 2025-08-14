@@ -107,7 +107,7 @@ export default function Home() {
 			setIsUploading(true);
 			try {
 				// Get authentication parameters
-				const authResponse = await fetch("/api/upload-auth");
+				const authResponse = await fetch("/api/upload");
 				if (!authResponse.ok) {
 					throw new Error("Failed to get upload authentication");
 				}
