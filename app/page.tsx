@@ -161,6 +161,26 @@ export default function Home() {
 		setProcessingProgress(0);
 		setIsImageLoading(false); // Reset any previous loading state
 
+		// Scroll to results section after processing completes
+		const scrollToResults = () => {
+			const resultsSection = document.getElementById('results-section');
+			if (resultsSection) {
+				resultsSection.scrollIntoView({ 
+					behavior: 'smooth', 
+					block: 'start' 
+				});
+			} else {
+				// Fallback: scroll to bottom of the page if results section isn't found yet
+				window.scrollTo({
+					top: document.body.scrollHeight,
+					behavior: 'smooth'
+				});
+			}
+		};
+
+		// Try to scroll immediately, then retry after processing completes
+		const initialScrollTimeout = setTimeout(scrollToResults, 100);
+
 		const progressInterval = setInterval(() => {
 			setProcessingProgress((prev) => {
 				if (prev >= 90) {
@@ -218,10 +238,24 @@ export default function Home() {
 			setIsImageLoading(true); // Start loading state for transformed image
 			setProcessingProgress(100);
 			setIsProcessing(false);
+			
+			// Clear the initial scroll timeout since we're done
+			clearTimeout(initialScrollTimeout);
+			
+			// Scroll to results after processing completes
+			const finalScrollTimeout = setTimeout(scrollToResults, 200);
+			
+			// Clean up final scroll timeout after it executes
+			setTimeout(() => {
+				clearTimeout(finalScrollTimeout);
+			}, 300);
 		} catch (error) {
 			console.error("Error applying transformations:", error);
 			setIsProcessing(false);
 			setProcessingProgress(0);
+			
+			// Clear the initial scroll timeout on error
+			clearTimeout(initialScrollTimeout);
 		}
 	};
 
@@ -384,9 +418,10 @@ export default function Home() {
 								<CardHeader>
 									<CardTitle className="font-heading">Your Image</CardTitle>
 									{isUploading && (
-										<div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+										<div className="bg-blue-50 mt-2 flex flex-row items-center dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+											<Loader2 className="w-4 h-4 mr-2 animate-spin text-black dark:text-white" />
 											<p className="text-sm text-blue-800 dark:text-blue-200">
-												📤 Uploading to ImageKit...
+												 Uploading...
 											</p>
 										</div>
 									)}
@@ -394,7 +429,7 @@ export default function Home() {
 										uploadedImage &&
 										!isUploading &&
 										uploadedImageUrl && (
-											<div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+											<div className="bg-green-50 mt-2 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
 												<p className="text-sm text-green-800 dark:text-green-200">
 													✅ Image uploaded! AI transformations will work on
 													your actual image.
@@ -480,7 +515,7 @@ export default function Home() {
 
 						{/* Results */}
 						{processedImageUrl && (
-							<div className="space-y-6">
+							<div id="results-section" className="space-y-6">
 								<Card className="border-green-200 dark:border-green-800">
 									<CardContent className="p-6 text-center">
 										<div className="w-12 h-12 mx-auto bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
