@@ -1,25 +1,176 @@
-// TODO: Add your ImageKit configuration here
 export const imagekitConfig = {
-  urlEndpoint: "", // Add your ImageKit URL endpoint
-  publicKey: "", // Add your public key
-  // Note: Private key should be used server-side only
+	urlEndpoint: "https://ik.imagekit.io/vishnumouli",
+	publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+	// Note: Private key should be used server-side only
 };
 
-// TODO: Add transformation options during the tutorial
+export const transformations = {
+	backgroundRemoval: {
+		standard: "e-removedotbg", // 130 units
+		efficient: "e-bgremove", // 10 units
+	},
+	enhance: {
+		retouch: "e-retouch", // 5 units
+		upscale: "e-upscale", // 5 units
+	},
+	effects: {
+		dropShadow: "e-dropshadow", // 1 unit
+		generateVar: "e-genvar", // 25 units
+	},
+	smart: {
+		faceCrop: "fo-face", // Free
+		smartCrop: "fo-auto", // Free
+	},
+};
+
 export const transformationOptions = [
-  // Students will add transformation options here
+	{
+		id: "bg-removal",
+		name: "Background Removal",
+		description: "Remove background instantly with AI",
+		icon: "eraser",
+		transformation: "e-bgremove",
+		cost: 10,
+		category: "background",
+	},
+	{
+		id: "bg-removal-premium",
+		name: "Premium Background Removal",
+		description: "Higher quality background removal",
+		icon: "scissors",
+		transformation: "e-removedotbg",
+		cost: 130,
+		category: "background",
+	},
+	{
+		id: "bg-remove-shadow",
+		name: "Remove Background + Drop Shadow",
+		description: "Remove background and add realistic shadow",
+		icon: "shadow",
+		transformation: "e-bgremove:e-dropshadow",
+		cost: 11,
+		category: "effects",
+	},
+	{
+		id: "smart-crop",
+		name: "Smart Crop Square",
+		description: "Auto-crop to 400x400 square",
+		icon: "crop",
+		transformation: "w-400,h-400,fo-auto",
+		cost: 0,
+		category: "smart",
+	},
+	{
+		id: "face-crop",
+		name: "Face Crop Square",
+		description: "Crop to face 300x300",
+		icon: "user",
+		transformation: "w-300,h-300,fo-face",
+		cost: 0,
+		category: "smart",
+	},
+	{
+		id: "resize-optimize",
+		name: "Optimize & Resize",
+		description: "Resize to 800px width with quality optimization",
+		icon: "zoom-in",
+		transformation: "w-800,q-80,f-auto",
+		cost: 0,
+		category: "optimize",
+	},
+	{
+		id: "enhance-basic",
+		name: "Enhance Quality",
+		description: "Basic image enhancement",
+		icon: "sparkles",
+		transformation: "e-sharpen,e-contrast",
+		cost: 0,
+		category: "enhance",
+	},
 ];
 
-// TODO: Add demo images for testing
+// Working demo images for testing transformations
 export const demoImages = [
-  // Students will add demo images here
+	{
+		url: "https://ik.imagekit.io/demo/img/image4.jpeg",
+		name: "Person with background",
+	},
+	{
+		url: "https://ik.imagekit.io/demo/img/image1.jpeg",
+		name: "Portrait",
+	},
+	{
+		url: "https://ik.imagekit.io/demo/medium_cafe_B1iTdD0C.jpg",
+		name: "Cafe scene",
+	},
+	{
+		url: "https://ik.imagekit.io/demo/img/image10.jpeg",
+		name: "Group photo",
+	},
+	{
+		url: "https://ik.imagekit.io/demo/img/image2.jpeg",
+		name: "Outdoor scene",
+	},
 ];
 
-// TODO: Build transformation URL function
-export const buildTransformationUrl = (
-  imageUrl: string,
-  transformations: string[]
-) => {
-  // Students will implement this function
-  return imageUrl;
+// Helper function to build transformation URL
+export const buildTransformationUrl = (imageUrl: string, transformations: string[]) => {
+	if (!imageUrl || transformations.length === 0) return imageUrl;
+
+	console.log("Building transformation for URL:", imageUrl);
+	console.log("Transformations to apply:", transformations);
+
+	// Build transformation string
+	const transformationStr = transformations.join(",");
+
+	// Check if it's a demo image or user-uploaded image
+	if (imageUrl.includes("/demo/")) {
+		// Handle demo images
+		const urlParts = imageUrl.split("/");
+		const demoIndex = urlParts.findIndex((part) => part === "demo");
+
+		if (demoIndex === -1) {
+			console.error("Invalid demo image URL:", imageUrl);
+			return imageUrl;
+		}
+
+		// Get the path after /demo/
+		const imagePath = urlParts.slice(demoIndex + 1).join("/");
+
+		// Construct the transformed URL for demo images
+		const transformedUrl = `https://ik.imagekit.io/demo/tr:${transformationStr}/${imagePath}`;
+
+		console.log("Demo transformed URL:", transformedUrl);
+		return transformedUrl;
+	} else {
+		// Handle user-uploaded images from your ImageKit account
+		try {
+			const url = new URL(imageUrl);
+			const pathname = url.pathname;
+
+			// Extract the file path (remove leading slash and account ID)
+			let filePath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+
+			// Remove the account ID from the beginning of the path if it exists
+			// URLs are like: https://ik.imagekit.io/yk7yipdov/filename.jpg
+			// So pathname is: /yk7yipdov/filename.jpg
+			// We need to remove 'yk7yipdov/' to get just 'filename.jpg'
+			const accountId = "vishnumouli";
+			if (filePath.startsWith(accountId + "/")) {
+				filePath = filePath.substring(accountId.length + 1);
+			}
+
+			// For chained transformations, use colon separator as per ImageKit docs
+			const chainedTransformations = transformations.join(":");
+
+			// Build the transformed URL for user images
+			const transformedUrl = `${imagekitConfig.urlEndpoint}/tr:${chainedTransformations}/${filePath}`;
+
+			console.log("User image transformed URL:", transformedUrl);
+			return transformedUrl;
+		} catch (error) {
+			console.error("Error parsing image URL:", error);
+			return imageUrl;
+		}
+	}
 };

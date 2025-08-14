@@ -72,7 +72,7 @@ export default function Home() {
 									</div>
 
 									<div className="flex gap-4 justify-center pt-4">
-										<Button
+										<Button 
 											type="button"
 											onClick={(e) => {
 												e.stopPropagation();
