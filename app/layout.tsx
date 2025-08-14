@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 	description:
 		"Upload, transform, and optimize your images with AI-powered tools. Resize, crop, remove backgrounds, and more with URL-based transformations.",
 	icons: {
-		icon: "/favicon.ico",
+		icon: "/favicon/favicon.ico",
 	},
 };
 
@@ -28,7 +28,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html suppressHydrationWarning lang="en">
-			<head />
+			<head>
+				<link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
+				<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+				<link rel="shortcut icon" href="/favicon/favicon.ico" />
+				<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+				<link rel="manifest" href="/favicon/site.webmanifest" />
+			</head>
 			<body
 				className={clsx(
 					"min-h-screen bg-background font-sans antialiased",

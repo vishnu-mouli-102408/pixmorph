@@ -305,8 +305,8 @@ export default function Home() {
 
 				{!uploadedImage ? (
 					/* Upload State */
-					<Card className="mx-auto">
-						<CardContent className="p-8">
+					<Card className="mx-auto rounded-2xl">
+						<CardContent className="p-8 shadow-[inset_0px_0px_55.5px_0px_#C5B9F626] rounded-2xl border-foreground/20">
 							<div
 								{...getRootProps()}
 								className={`p-12 text-center cursor-pointer border-2 border-dashed rounded-lg transition-colors ${isDragActive
