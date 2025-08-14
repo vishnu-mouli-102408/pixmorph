@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import {
 	Upload,
@@ -56,6 +57,9 @@ export default function Home() {
 	const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
 	const [isUploading, setIsUploading] = useState(false);
 	const [isImageLoading, setIsImageLoading] = useState(false);
+	const [isDownloading, setIsDownloading] = useState(false);
+
+
 
 	// Add test function to window for debugging
 	useEffect(() => {
@@ -91,6 +95,8 @@ export default function Home() {
 			"🛠️ Debug tools loaded! Try: testTransformation('your-image-url', 'e-bgremove')"
 		);
 	}, []);
+
+
 
 	const onDrop = useCallback(async (acceptedFiles: File[]) => {
 		const file = acceptedFiles[0];
@@ -135,11 +141,16 @@ export default function Home() {
 				if (uploadResponse.url) {
 					setUploadedImageUrl(uploadResponse.url);
 					console.log("Image uploaded to ImageKit:", uploadResponse.url);
+
 				} else {
 					throw new Error("Upload response missing URL");
 				}
 			} catch (error) {
 				console.error("Upload error:", error);
+				toast.error("Upload failed", {
+					description: "You can still use demo images for transformations.",
+					duration: 5000,
+				});
 				// Upload failed, but we can still continue with demo
 			} finally {
 				setIsUploading(false);
@@ -165,9 +176,9 @@ export default function Home() {
 		const scrollToResults = () => {
 			const resultsSection = document.getElementById('results-section');
 			if (resultsSection) {
-				resultsSection.scrollIntoView({ 
-					behavior: 'smooth', 
-					block: 'start' 
+				resultsSection.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start'
 				});
 			} else {
 				// Fallback: scroll to bottom of the page if results section isn't found yet
@@ -238,24 +249,31 @@ export default function Home() {
 			setIsImageLoading(true); // Start loading state for transformed image
 			setProcessingProgress(100);
 			setIsProcessing(false);
-			
+
 			// Clear the initial scroll timeout since we're done
 			clearTimeout(initialScrollTimeout);
-			
+
 			// Scroll to results after processing completes
 			const finalScrollTimeout = setTimeout(scrollToResults, 200);
-			
+
 			// Clean up final scroll timeout after it executes
 			setTimeout(() => {
 				clearTimeout(finalScrollTimeout);
 			}, 300);
+
+
 		} catch (error) {
 			console.error("Error applying transformations:", error);
 			setIsProcessing(false);
 			setProcessingProgress(0);
-			
+
 			// Clear the initial scroll timeout on error
 			clearTimeout(initialScrollTimeout);
+
+			toast.error("Transformation failed", {
+				description: "Please try again with different settings or a different image.",
+				duration: 5000,
+			});
 		}
 	};
 
@@ -268,11 +286,19 @@ export default function Home() {
 		setProcessedImageUrl("");
 		setSelectedTransformations([]);
 		setIsUsingDemo(true);
+
+		toast.success("Demo image loaded!", {
+			description: "Try different AI transformations on this sample image.",
+			duration: 3000,
+		});
 	};
 
 	const toggleTransformation = (transformationId: string) => {
+		const isSelected = selectedTransformations.includes(transformationId);
+		const transformationName = transformationOptions.find(opt => opt.id === transformationId)?.name || transformationId;
+
 		setSelectedTransformations((prev) => {
-			if (prev.includes(transformationId)) {
+			if (isSelected) {
 				return prev.filter((id) => id !== transformationId);
 			} else {
 				return [...prev, transformationId];
@@ -286,14 +312,58 @@ export default function Home() {
 		}
 	};
 
-	const downloadImage = () => {
-		if (processedImageUrl) {
+	const downloadImage = async () => {
+		if (!processedImageUrl) return;
+
+		setIsDownloading(true);
+
+		try {
+			// Fetch the image as a blob
+			const response = await fetch(processedImageUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch image: ${response.statusText}`);
+			}
+
+			const blob = await response.blob();
+
+			// Create a blob URL
+			const blobUrl = URL.createObjectURL(blob);
+
+			// Generate a meaningful filename
+			const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+			const transformations = selectedTransformations.join('-');
+			const filename = `ai-transformed-${transformations}-${timestamp}.png`;
+
+			// Create download link
 			const link = document.createElement("a");
-			link.href = processedImageUrl;
-			link.download = "ai-transformed-image.png";
+			link.href = blobUrl;
+			link.download = filename;
+			link.style.display = 'none';
+
+			// Trigger download
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
+
+			// Clean up blob URL after 1 second
+			setTimeout(() => {
+				URL.revokeObjectURL(blobUrl);
+			}, 1000);
+
+			console.log(`✅ Image downloaded successfully: ${filename}`);
+			toast.success(`Image downloaded successfully!`, {
+				description: `Saved as: ${filename}`,
+				duration: 2000,
+			});
+
+		} catch (error) {
+			console.error("❌ Download failed:", error);
+			toast.error("Download failed", {
+				description: "Please try again. The image might still be processing.",
+				duration: 2000,
+			});
+		} finally {
+			setIsDownloading(false);
 		}
 	};
 
@@ -309,6 +379,12 @@ export default function Home() {
 		setUploadedImageUrl("");
 		setIsUploading(false);
 		setIsImageLoading(false);
+		setIsDownloading(false);
+
+		toast.success("Reset complete!", {
+			description: "Ready for a new image upload.",
+			duration: 2000,
+		});
 	};
 
 	// Get main transformations (most popular ones)
@@ -421,7 +497,7 @@ export default function Home() {
 										<div className="bg-blue-50 mt-2 flex flex-row items-center dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
 											<Loader2 className="w-4 h-4 mr-2 animate-spin text-black dark:text-white" />
 											<p className="text-sm text-blue-800 dark:text-blue-200">
-												 Uploading...
+												Uploading...
 											</p>
 										</div>
 									)}
@@ -516,23 +592,39 @@ export default function Home() {
 						{/* Results */}
 						{processedImageUrl && (
 							<div id="results-section" className="space-y-6">
-								<Card className="border-green-200 dark:border-green-800">
-									<CardContent className="p-6 text-center">
-										<div className="w-12 h-12 mx-auto bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-											<Check className="w-6 h-6 text-green-600 dark:text-green-400" />
-										</div>
-										<h3 className="text-lg font-heading font-semibold mb-2">
-											AI Transformation Complete!
-										</h3>
-										<p className="text-muted-foreground font-sans">
-											{isUsingDemo
-												? "Demo image has been transformed"
-												: uploadedImageUrl
-													? "Your uploaded image has been transformed"
-													: "Transformation demonstrated on sample image"}
-										</p>
-									</CardContent>
-								</Card>
+								{isImageLoading ? (
+									<Card className="border-blue-200 dark:border-blue-800">
+										<CardContent className="p-6 text-center">
+											<div className="w-12 h-12 mx-auto bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
+												<Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
+											</div>
+											<h3 className="text-lg font-heading font-semibold mb-2">
+												AI Processing in Progress...
+											</h3>
+											<p className="text-muted-foreground font-sans">
+												Please wait while our AI transforms your image. This may take 10-60 seconds.
+											</p>
+										</CardContent>
+									</Card>
+								) : (
+									<Card className="border-green-200 dark:border-green-800">
+										<CardContent className="p-6 text-center">
+											<div className="w-12 h-12 mx-auto bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
+												<Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+											</div>
+											<h3 className="text-lg font-heading font-semibold mb-2">
+												AI Transformation Complete!
+											</h3>
+											<p className="text-muted-foreground font-sans">
+												{isUsingDemo
+													? "Demo image has been transformed"
+													: uploadedImageUrl
+														? "Your uploaded image has been transformed"
+														: "Transformation demonstrated on sample image"}
+											</p>
+										</CardContent>
+									</Card>
+								)}
 
 								<div className="grid lg:grid-cols-2 gap-6">
 									<Card>
@@ -640,9 +732,22 @@ export default function Home() {
 								</div>
 
 								<div className="flex gap-4 justify-center">
-									<Button onClick={downloadImage} size="lg">
-										<Download className="w-4 h-4 mr-2" />
-										Download
+									<Button
+										onClick={downloadImage}
+										size="lg"
+										disabled={isDownloading}
+									>
+										{isDownloading ? (
+											<>
+												<Loader2 className="w-4 h-4 animate-spin" />
+												Downloading...
+											</>
+										) : (
+											<>
+												<Download className="w-4 h-4 mr-2" />
+												Download
+											</>
+										)}
 									</Button>
 									<Button onClick={reset} variant="outline" size="lg">
 										<RotateCcw className="w-4 h-4 mr-2" />
@@ -655,20 +760,7 @@ export default function Home() {
 				)}
 			</div>
 
-			<style jsx global>{`
-        .bg-transparent-pattern {
-          background-image: linear-gradient(
-              45deg,
-              hsl(var(--muted)) 25%,
-              transparent 25%
-            ),
-            linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%),
-            linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%);
-          background-size: 20px 20px;
-          background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
-      `}</style>
+
 		</div>
 	);
 }

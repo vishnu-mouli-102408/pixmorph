@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
+import { Toaster } from "sonner";
 
 import { Providers } from "./providers";
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
 					<div className="relative flex flex-col min-h-screen">
 						<main className="flex-grow">{children}</main>
+						<Toaster richColors position="bottom-center" />
 					</div>
 				</Providers>
 			</body>
